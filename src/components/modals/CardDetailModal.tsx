@@ -5,7 +5,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card } from '../../types';
-import { CategoryBadge } from '../../utils/cardCategories';
+import { CategoryBadge } from '../cards/CardCategoryComponents';
 import { maskCardNumber, formatCardNumber } from '../../utils/cardValidation';
 
 interface CardDetailModalProps {

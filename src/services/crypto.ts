@@ -1,6 +1,6 @@
 /**
  * Client-side encryption utilities using Web Crypto API
- * Implements AES-GCM encryption with PBKDF2 + HKDF key derivation
+ * Implements AES-GCM encryption with PBKDF2 key derivation
  * 
  * SECURITY PRINCIPLES:
  * - All encryption happens client-side
@@ -18,7 +18,6 @@ export const ENCRYPTION_CONSTANTS = {
   SALT_LENGTH: 32, // 256-bit salt
   TAG_LENGTH: 16,  // 128-bit authentication tag
   PBKDF2_ITERATIONS: 100000, // Configurable, minimum 100k
-  HKDF_INFO: new TextEncoder().encode('SecureCardr-v1'), // Version info for HKDF
 } as const;
 
 /**
@@ -45,7 +44,7 @@ export function generateIV(): Uint8Array {
 }
 
 /**
- * Derive an encryption key from a passphrase using PBKDF2 + HKDF
+ * Derive an encryption key from a passphrase using PBKDF2
  * @param passphrase - User's passphrase
  * @param salt - Random salt (should be stored with encrypted data)
  * @param iterations - PBKDF2 iterations (default: 100,000)
@@ -69,8 +68,8 @@ export async function deriveKey(
       ['deriveKey']
     );
 
-    // Step 2: Derive intermediate key using PBKDF2
-    const pbkdf2Key = await crypto.subtle.deriveKey(
+    // Step 2: Derive final AES key directly using PBKDF2
+    const finalKey = await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt,
@@ -78,20 +77,6 @@ export async function deriveKey(
         hash: 'SHA-256',
       },
       keyMaterial,
-      { name: 'HKDF', length: 256 },
-      false,
-      ['deriveKey']
-    );
-
-    // Step 3: Derive final encryption key using HKDF
-    const finalKey = await crypto.subtle.deriveKey(
-      {
-        name: 'HKDF',
-        hash: 'SHA-256',
-        salt: new Uint8Array(32), // Zero salt for HKDF
-        info: ENCRYPTION_CONSTANTS.HKDF_INFO,
-      },
-      pbkdf2Key,
       { name: 'AES-GCM', length: ENCRYPTION_CONSTANTS.KEY_LENGTH },
       false,
       ['encrypt', 'decrypt']

@@ -14,6 +14,7 @@ export interface Card {
   last4?: string;
   addedAt: Date;
   updatedAt: Date;
+  driveFileId?: string; // Google Drive file ID for persistence
 }
 
 export interface EncryptedData {

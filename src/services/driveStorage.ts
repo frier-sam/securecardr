@@ -4,6 +4,30 @@ import { Card, EncryptedData } from '../types';
 import { encryptCard, decryptCard } from './cardCrypto';
 import { encryptImage, decryptImage } from './imageCrypto';
 
+/**
+ * Convert data URL to Blob without using fetch (CSP safe)
+ */
+function dataURLToBlob(dataURL: string): Blob {
+  // Extract the base64 data and mime type
+  const matches = dataURL.match(/^data:([^;]+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error('Invalid data URL');
+  }
+  
+  const mimeType = matches[1];
+  const base64Data = matches[2];
+  
+  // Convert base64 to binary
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  return new Blob([bytes], { type: mimeType });
+}
+
 // Cache for folder IDs
 let folderCache: {
   rootFolderId?: string;
@@ -21,7 +45,7 @@ export async function initializeDriveStorage(): Promise<void> {
 }
 
 /**
- * Save an encrypted card to Drive
+ * Save an encrypted card to Drive (including image if present)
  */
 export async function saveCardToDrive(
   card: Card,
@@ -30,6 +54,27 @@ export async function saveCardToDrive(
 ): Promise<string> {
   if (!folderCache.cardsFolderId) {
     await initializeDriveStorage();
+  }
+  
+  // If card has an image (data URL), save it separately
+  let imageFileId: string | undefined;
+  if (card.imageUrl && card.imageUrl.startsWith('data:')) {
+    // Convert data URL to Blob without using fetch (CSP safe)
+    const imageBlob = dataURLToBlob(card.imageUrl);
+    
+    // Save image to Drive
+    imageFileId = await saveCardImageToDrive(
+      card.id,
+      imageBlob,
+      passphrase,
+      onProgress
+    );
+    
+    // Update card to reference the image file ID instead of data URL
+    card = {
+      ...card,
+      imageUrl: `drive://${imageFileId}` // Special URL format to indicate Drive storage
+    };
   }
   
   // Encrypt the card data
@@ -139,7 +184,7 @@ export async function saveCardThumbnailsToDrive(
 }
 
 /**
- * Load a card from Drive
+ * Load a card from Drive (including image if present)
  */
 export async function loadCardFromDrive(
   fileId: string,
@@ -150,8 +195,28 @@ export async function loadCardFromDrive(
   const encryptedJson = await blob.text();
   const encryptedCard = JSON.parse(encryptedJson) as EncryptedData;
   
-  // Decrypt and return
-  return await decryptCard(encryptedCard, passphrase);
+  // Decrypt the card
+  const card = await decryptCard(encryptedCard, passphrase);
+  
+  // If card has a Drive image reference, load it
+  if (card.imageUrl && card.imageUrl.startsWith('drive://')) {
+    const imageFileId = card.imageUrl.replace('drive://', '');
+    try {
+      const imageBlob = await loadCardImageFromDrive(imageFileId, passphrase);
+      // Convert blob to data URL
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(imageBlob);
+      });
+      card.imageUrl = dataUrl;
+    } catch (error) {
+      console.error('Failed to load card image:', error);
+      // Keep the drive:// reference if image fails to load
+    }
+  }
+  
+  return card;
 }
 
 /**
@@ -196,7 +261,7 @@ export async function listCardsFromDrive(): Promise<Array<{
 }
 
 /**
- * Update a card in Drive
+ * Update a card in Drive (including image if changed)
  */
 export async function updateCardInDrive(
   fileId: string,
@@ -204,6 +269,39 @@ export async function updateCardInDrive(
   passphrase: string,
   onProgress?: (progress: number) => void
 ): Promise<void> {
+  // Handle image update if present
+  if (card.imageUrl && card.imageUrl.startsWith('data:')) {
+    // Convert data URL to Blob without using fetch (CSP safe)
+    const imageBlob = dataURLToBlob(card.imageUrl);
+    
+    // Check if image already exists
+    const existingImageFiles = await searchFiles(`card_${card.id}_image.enc`, folderCache.cardsFolderId);
+    
+    let imageFileId: string;
+    if (existingImageFiles.length > 0) {
+      // Update existing image
+      const encryptedImage = await encryptImage(imageBlob, passphrase);
+      await updateFile(
+        existingImageFiles[0].id,
+        new Blob([encryptedImage]),
+        {
+          name: `card_${card.id}_image.enc`,
+          mimeType: 'application/octet-stream'
+        }
+      );
+      imageFileId = existingImageFiles[0].id;
+    } else {
+      // Save new image
+      imageFileId = await saveCardImageToDrive(card.id, imageBlob, passphrase);
+    }
+    
+    // Update card to reference the image file ID
+    card = {
+      ...card,
+      imageUrl: `drive://${imageFileId}`
+    };
+  }
+  
   // Encrypt the updated card
   const encryptedCard = await encryptCard(card, passphrase);
   
@@ -233,6 +331,35 @@ export async function deleteCardFromDrive(cardId: string): Promise<void> {
   // Delete all related files
   const deletePromises = files.map(file => deleteFile(file.id));
   await Promise.all(deletePromises);
+}
+
+/**
+ * Delete all cards from Drive (for vault reset)
+ */
+export async function deleteAllCardsFromDrive(): Promise<void> {
+  if (!folderCache.cardsFolderId) {
+    await initializeDriveStorage();
+  }
+  
+  // Get all files in the cards folder
+  const files = await searchFiles('', folderCache.cardsFolderId);
+  
+  // Delete all files
+  const deletePromises = files.map(file => deleteFile(file.id));
+  await Promise.all(deletePromises);
+  
+  // Also clear preferences and index
+  if (folderCache.configFolderId) {
+    const configFiles = await searchFiles('', folderCache.configFolderId);
+    const configDeletePromises = configFiles.map(file => deleteFile(file.id));
+    await Promise.all(configDeletePromises);
+  }
+  
+  if (folderCache.metadataFolderId) {
+    const metadataFiles = await searchFiles('', folderCache.metadataFolderId);
+    const metadataDeletePromises = metadataFiles.map(file => deleteFile(file.id));
+    await Promise.all(metadataDeletePromises);
+  }
 }
 
 /**
@@ -301,7 +428,7 @@ export async function loadPreferencesFromDrive(passphrase: string): Promise<any>
 }
 
 /**
- * Save encrypted card index to Drive for faster loading
+ * Save card index to Drive (for performance)
  */
 export async function saveCardIndexToDrive(
   index: Array<{

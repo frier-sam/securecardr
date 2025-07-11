@@ -7,6 +7,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Card } from '../../types';
 import { CategoryBadge } from '../cards/CardCategoryComponents';
 import { maskCardNumber, formatCardNumber } from '../../utils/cardValidation';
+import { Logo } from '../common/Logo';
 
 interface CardDetailModalProps {
   card: Card | null;
@@ -82,19 +83,29 @@ export function CardDetailModal({
     return null;
   }
 
+  const categoryEmoji = {
+    credit: '💳',
+    debit: '💰',
+    loyalty: '🎁',
+    id: '🆔',
+    other: '📋'
+  }[card.category] || '📋';
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto ${className}`}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className={`bg-surface rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scale-in ${className}`}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-slate-700">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-3">
-              <CategoryBadge category={card.category} size="md" />
+              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                <span className="text-2xl">{categoryEmoji}</span>
+              </div>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h2 className="text-xl font-semibold text-text-primary">
                   {card.nickname}
                 </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-text-secondary">
                   Added {card.addedAt.toLocaleDateString()}
                   {card.updatedAt.getTime() !== card.addedAt.getTime() && (
                     <span> • Updated {card.updatedAt.toLocaleDateString()}</span>
@@ -102,10 +113,10 @@ export function CardDetailModal({
                 </p>
               </div>
             </div>
-            
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              className="p-2 text-text-secondary hover:text-text-primary hover:bg-slate-700 rounded-lg transition-colors"
+              aria-label="Close modal"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -115,229 +126,191 @@ export function CardDetailModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Card Number */}
-          {card.number && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Card Number
-              </label>
-              <div className="flex items-center space-x-2">
-                <div className="flex-1 font-mono text-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+        <div className="p-6">
+          {/* Card Details Grid */}
+          <div className="space-y-4">
+            {/* Card Number */}
+            {card.number && (
+              <div className="bg-background rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-text-secondary">Card Number</label>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setShowFullNumber(!showFullNumber)}
+                      className="text-xs text-primary hover:text-blue-600 transition-colors"
+                    >
+                      {showFullNumber ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      onClick={() => handleCopyToClipboard(card.number!, 'number')}
+                      className="p-1 text-text-secondary hover:text-primary transition-colors"
+                      aria-label="Copy card number"
+                    >
+                      {copiedField === 'number' ? (
+                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <p className="font-mono text-lg text-text-primary">
                   {showFullNumber ? formatCardNumber(card.number) : maskCardNumber(card.number)}
-                </div>
-                <button
-                  onClick={() => setShowFullNumber(!showFullNumber)}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                  title={showFullNumber ? 'Hide number' : 'Show number'}
-                >
-                  {showFullNumber ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-                {showFullNumber && (
-                  <button
-                    onClick={() => handleCopyToClipboard(card.number!, 'number')}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copiedField === 'number' ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Dates */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {card.expiryDate && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Expiry Date
-                </label>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 font-mono bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
-                    {card.expiryDate}
-                  </div>
-                  <button
-                    onClick={() => handleCopyToClipboard(card.expiryDate!, 'expiry')}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copiedField === 'expiry' ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
+                </p>
               </div>
             )}
 
-            {card.issueDate && (
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Issue Date
-                </label>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 font-mono bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
-                    {card.issueDate}
+            {/* Expiry Date and CVV Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {card.expiryDate && (
+                <div className="bg-background rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-text-secondary">Expiry Date</label>
+                    <button
+                      onClick={() => handleCopyToClipboard(card.expiryDate!, 'expiry')}
+                      className="p-1 text-text-secondary hover:text-primary transition-colors"
+                      aria-label="Copy expiry date"
+                    >
+                      {copiedField === 'expiry' ? (
+                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
                   </div>
+                  <p className="text-lg text-text-primary">{card.expiryDate}</p>
+                </div>
+              )}
+
+              {card.cvv && (
+                <div className="bg-background rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-text-secondary">CVV</label>
+                    <button
+                      onClick={() => handleCopyToClipboard(card.cvv!, 'cvv')}
+                      className="p-1 text-text-secondary hover:text-primary transition-colors"
+                      aria-label="Copy CVV"
+                    >
+                      {copiedField === 'cvv' ? (
+                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-lg text-text-primary">•••</p>
+                </div>
+              )}
+            </div>
+
+            {/* Cardholder Name */}
+            {card.cardholderName && (
+              <div className="bg-background rounded-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-text-secondary">Cardholder Name</label>
                   <button
-                    onClick={() => handleCopyToClipboard(card.issueDate!, 'issue')}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
-                    title="Copy to clipboard"
+                    onClick={() => handleCopyToClipboard(card.cardholderName!, 'name')}
+                    className="p-1 text-text-secondary hover:text-primary transition-colors"
+                    aria-label="Copy cardholder name"
                   >
-                    {copiedField === 'issue' ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {copiedField === 'name' ? (
+                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                       </svg>
                     )}
                   </button>
                 </div>
+                <p className="text-lg text-text-primary">{card.cardholderName}</p>
               </div>
             )}
-          </div>
 
-          {/* Card Image */}
-          {card.imageUrl && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Card Photo
-              </label>
-              <div 
-                onClick={() => onImageView?.(card.imageUrl!)}
-                className="cursor-pointer group relative inline-block"
-              >
-                <img
-                  src={card.imageUrl}
-                  alt={`Photo of ${card.nickname}`}
-                  className="max-w-full h-48 object-cover rounded-lg border border-gray-200 dark:border-gray-700 group-hover:opacity-90 transition-opacity"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-black bg-opacity-50 text-white px-3 py-1 rounded-md text-sm">
-                    Click to enlarge
+            {/* Notes */}
+            {card.notes && (
+              <div className="bg-background rounded-lg p-4">
+                <label className="text-sm font-medium text-text-secondary mb-2 block">Notes</label>
+                <p className="text-text-primary whitespace-pre-wrap">{card.notes}</p>
+              </div>
+            )}
+
+            {/* Card Image */}
+            {card.imageUrl && (
+              <div className="bg-background rounded-lg p-4">
+                <label className="text-sm font-medium text-text-secondary mb-2 block">Card Image</label>
+                <div className="relative group">
+                  <img
+                    src={card.imageUrl}
+                    alt={`${card.nickname} card`}
+                    className="w-full h-48 object-cover rounded-lg cursor-pointer transition-transform hover:scale-105"
+                    onClick={() => onImageView?.(card.imageUrl!)}
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity rounded-lg flex items-center justify-center">
+                    <svg className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Notes */}
-          {card.notes && (
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Notes
-              </label>
-              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                  {card.notes}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Security Warning */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-            <div className="flex">
-              <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <div className="text-sm">
-                <p className="text-yellow-800 dark:text-yellow-200 mb-1 font-medium">
-                  Security Reminder
-                </p>
-                <p className="text-yellow-700 dark:text-yellow-300">
-                  This data is encrypted and stored in your Google Drive. Never share your passphrase or unencrypted card details.
-                </p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-          {showDeleteConfirm ? (
-            <div className="space-y-4">
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <div className="flex">
-                  <svg className="w-5 h-5 text-red-500 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  <div className="text-sm">
-                    <p className="text-red-800 dark:text-red-200 font-medium mb-1">
-                      Confirm Deletion
-                    </p>
-                    <p className="text-red-700 dark:text-red-300">
-                      Are you sure you want to delete "{card.nickname}"? This action cannot be undone.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-                >
-                  Delete Card
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-between">
+        <div className="p-6 border-t border-slate-700">
+          <div className="flex flex-col sm:flex-row justify-between gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-text-secondary hover:text-text-primary transition-colors order-2 sm:order-1"
+            >
+              Close
+            </button>
+            
+            <div className="flex gap-3 order-1 sm:order-2">
               <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                onClick={handleEdit}
+                className="flex-1 sm:flex-initial px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center justify-center space-x-2"
               >
-                Delete Card
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                <span>Edit</span>
               </button>
               
-              <div className="flex space-x-3">
+              {!showDeleteConfirm ? (
                 <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
+                  onClick={handleDelete}
+                  className="flex-1 sm:flex-initial px-6 py-2 text-red-400 border border-red-400 rounded-lg hover:bg-red-400 hover:text-white transition-colors font-medium flex items-center justify-center space-x-2"
                 >
-                  Close
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete</span>
                 </button>
+              ) : (
                 <button
-                  onClick={handleEdit}
-                  className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-md transition-colors"
+                  onClick={handleDelete}
+                  className="flex-1 sm:flex-initial px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium animate-pulse"
                 >
-                  Edit Card
+                  Confirm Delete?
                 </button>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

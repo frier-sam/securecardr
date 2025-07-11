@@ -281,12 +281,27 @@ export function validateCardData(data: CardFormData): ValidationResult {
     errors.nickname = 'Nickname must be 50 characters or less';
   }
   
-  // Card number validation (if provided)
+  // Card number validation - only strict for credit/debit cards
   if (data.number && data.number.trim()) {
-    const cardValidation = CardNumberValidator.validate(data.number);
-    if (!cardValidation.isValid) {
-      errors.number = cardValidation.errors.join(', ');
+    const cleanNumber = data.number.replace(/\D/g, '');
+    
+    // Only apply strict validation for credit/debit cards
+    if (data.category === 'credit' || data.category === 'debit') {
+      const cardValidation = CardNumberValidator.validate(data.number);
+      if (!cardValidation.isValid) {
+        errors.number = cardValidation.errors.join(', ');
+      }
+    } else {
+      // For other card types, just basic length check
+      if (cleanNumber.length > 50) {
+        errors.number = 'Card number is too long';
+      }
     }
+  }
+  
+  // Required card number for credit/debit cards
+  if ((data.category === 'credit' || data.category === 'debit') && (!data.number || !data.number.trim())) {
+    errors.number = 'Card number is required for credit/debit cards';
   }
   
   // Expiry date validation
@@ -310,13 +325,6 @@ export function validateCardData(data: CardFormData): ValidationResult {
     errors.notes = 'Notes must be 500 characters or less';
   }
   
-  // Category-specific validations
-  if (data.category === 'credit' || data.category === 'debit') {
-    if (!data.number || !data.number.trim()) {
-      errors.number = 'Card number is required for credit/debit cards';
-    }
-  }
-  
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
@@ -333,6 +341,8 @@ export function sanitizeCardData(data: CardFormData): CardFormData {
     number: data.number ? data.number.replace(/\s+/g, ' ').trim() : '',
     expiryDate: data.expiryDate ? data.expiryDate.trim() : '',
     issueDate: data.issueDate ? data.issueDate.trim() : '',
+    cvv: data.cvv ? data.cvv.trim() : '',
+    cardholderName: data.cardholderName ? data.cardholderName.trim().slice(0, 100) : '',
     notes: data.notes ? data.notes.trim().slice(0, 500) : '',
     image: data.image,
   };
@@ -498,6 +508,8 @@ export function createCardFromFormData(
     number: sanitized.number || undefined,
     expiryDate: sanitized.expiryDate || undefined,
     issueDate: sanitized.issueDate || undefined,
+    cvv: sanitized.cvv || undefined,
+    cardholderName: sanitized.cardholderName || undefined,
     notes: sanitized.notes || undefined,
     last4: sanitized.number ? generateLast4(sanitized.number) : undefined,
     addedAt: now,
@@ -521,6 +533,8 @@ export function updateCardFromFormData(
     number: sanitized.number || undefined,
     expiryDate: sanitized.expiryDate || undefined,
     issueDate: sanitized.issueDate || undefined,
+    cvv: sanitized.cvv || undefined,
+    cardholderName: sanitized.cardholderName || undefined,
     notes: sanitized.notes || undefined,
     last4: sanitized.number ? generateLast4(sanitized.number) : undefined,
     updatedAt: new Date(),

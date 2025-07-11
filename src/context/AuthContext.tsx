@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AuthUser, onAuthChange, signInWithGoogle, signOutUser, checkRedirectResult } from '../services/auth';
+import { vaultSession } from '../services/vaultSession';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -56,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       await signOutUser();
+      // Clear vault session on sign out
+      vaultSession.clearSession();
     } catch (error) {
       console.error('Sign out error:', error);
       throw error;

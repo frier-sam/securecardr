@@ -320,26 +320,28 @@ export function ImageCropper({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
-        <button
-          onClick={onCancel}
-          disabled={cropperState.isProcessing}
-          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        
-        <button
-          onClick={handleCrop}
-          disabled={cropperState.isProcessing || !cropperState.cropper}
-          className="px-6 py-2 text-sm bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 text-white rounded-md transition-colors disabled:cursor-not-allowed flex items-center space-x-2"
-        >
-          {cropperState.isProcessing && (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          )}
-          <span>{cropperState.isProcessing ? 'Processing...' : 'Apply Crop'}</span>
-        </button>
+      {/* Actions - Fixed for better mobile visibility */}
+      <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div className="flex justify-between gap-3">
+          <button
+            onClick={onCancel}
+            disabled={cropperState.isProcessing}
+            className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          
+          <button
+            onClick={handleCrop}
+            disabled={cropperState.isProcessing || !cropperState.cropper}
+            className="px-6 py-2 text-sm bg-primary text-white hover:bg-primary-600 disabled:bg-gray-400 rounded-md transition-colors disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg"
+          >
+            {cropperState.isProcessing && (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            )}
+            <span>{cropperState.isProcessing ? 'Processing...' : 'Apply Crop'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Instructions */}

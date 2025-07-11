@@ -9,6 +9,8 @@ export interface Card {
   number?: string;
   expiryDate?: string;
   issueDate?: string;
+  cvv?: string;
+  cardholderName?: string;
   notes?: string;
   imageUrl?: string;
   last4?: string;
@@ -57,6 +59,8 @@ export interface CardFormData {
   number: string;
   expiryDate: string;
   issueDate: string;
+  cvv: string;
+  cardholderName: string;
   notes: string;
   image?: File;
 }

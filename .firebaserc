@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "cardr-sec",
+    "production": "cardr-sec"
+  }
+}

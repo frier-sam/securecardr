@@ -3,7 +3,7 @@
  * React components for category management and display
  */
 
-import React from 'react';
+// Remove unused React import
 import { Card } from '../../types';
 import {
   CardCategory,

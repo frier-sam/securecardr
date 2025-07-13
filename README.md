@@ -122,10 +122,22 @@ src/
 
 ### Available Scripts
 
+#### Development:
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript type checking
+
+#### Firebase Deployment:
+- `npm run deploy` - Deploy to Firebase Hosting production
+- `npm run deploy:preview` - Deploy to Firebase Hosting preview
+- `npm run firebase:login` - Login to Firebase
+- `npm run firebase:init` - Initialize Firebase project
+- `npm run firebase:serve` - Serve build locally with Firebase
+
+#### Setup:
+- `npm run setup` - Run interactive setup script
 
 ### Code Standards
 
@@ -134,6 +146,38 @@ src/
 - **Styling**: Tailwind CSS utility classes
 - **Naming**: PascalCase for components, camelCase for functions
 - **Documentation**: JSDoc comments for complex functions
+
+## 🚀 Deployment
+
+### Automated Deployment with GitHub Actions
+
+This project includes comprehensive CI/CD workflows for automatic deployment to Firebase Hosting:
+
+#### Quick Setup:
+1. **Run setup script**: `npm run setup`
+2. **Add GitHub secrets** (see [DEPLOYMENT.md](DEPLOYMENT.md))
+3. **Push to `prod` branch** to trigger deployment
+
+#### Deployment Features:
+- **Production Deploy**: Automatic deployment on push to `prod` branch
+- **Preview Deploy**: Automatic preview deployments for pull requests
+- **Security Scanning**: Automated vulnerability scanning and dependency updates
+- **Quality Checks**: Linting, type checking, and build verification
+
+#### Available Scripts:
+- `npm run deploy` - Manual deployment to production
+- `npm run deploy:preview` - Manual preview deployment
+- `npm run firebase:serve` - Local Firebase hosting preview
+- `bash scripts/deploy.sh` - Interactive deployment script
+
+#### Workflows:
+- **CI/CD Pipeline** (`.github/workflows/ci.yml`)
+- **Production Deployment** (`.github/workflows/deploy.yml`)
+- **Preview Deployment** (`.github/workflows/preview.yml`)
+- **Dependency Updates** (`.github/workflows/dependency-updates.yml`)
+- **Release Management** (`.github/workflows/release.yml`)
+
+For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## 🧪 Testing
 

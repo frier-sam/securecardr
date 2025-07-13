@@ -135,14 +135,14 @@ export function detectCardCategory(cardNumber: string): CardCategory {
  * Get recommended fields for a category
  */
 export function getRecommendedFields(category: CardCategory): string[] {
-  return getCategoryInfo(category).fields;
+  return [...getCategoryInfo(category).fields];
 }
 
 /**
  * Get common brands/issuers for a category
  */
 export function getCommonBrands(category: CardCategory): string[] {
-  return getCategoryInfo(category).commonBrands;
+  return [...getCategoryInfo(category).commonBrands];
 }
 
 /**

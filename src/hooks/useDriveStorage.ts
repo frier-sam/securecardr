@@ -41,9 +41,14 @@ export function useDriveStorage() {
       
       // Save image if provided
       if (imageBlob) {
+        // Convert Blob to File for saveCardImageToDrive
+        const imageFile = new File([imageBlob], `card_${card.id}_image.jpg`, {
+          type: imageBlob.type || 'image/jpeg',
+          lastModified: Date.now()
+        });
         await driveStorage.saveCardImageToDrive(
           card.id,
-          imageBlob,
+          imageFile,
           passphrase,
           (progress) => setProgress(50 + progress * 0.25) // 25% for image
         );

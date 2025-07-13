@@ -8,7 +8,7 @@
  * - Passphrase is encrypted in memory with a session key
  */
 
-import { encrypt, decrypt, generateSalt, generateSecureRandom, arrayBufferToBase64, base64ToArrayBuffer } from './crypto';
+import { generateSalt, generateSecureRandom, arrayBufferToBase64, base64ToArrayBuffer } from './crypto';
 
 const SESSION_KEY = 'securecardr_vault_session';
 const SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds

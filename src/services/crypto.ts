@@ -358,14 +358,14 @@ export async function testCryptoAvailability(): Promise<{ available: boolean; er
     }
 
     // Test AES-GCM support
-    const testKey = await crypto.subtle.generateKey(
+    await crypto.subtle.generateKey(
       { name: 'AES-GCM', length: 256 },
       false,
       ['encrypt', 'decrypt']
     );
 
     // Test PBKDF2 support
-    const testKeyMaterial = await crypto.subtle.importKey(
+    await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode('test'),
       { name: 'PBKDF2' },

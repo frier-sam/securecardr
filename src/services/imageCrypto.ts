@@ -4,7 +4,7 @@
  */
 
 import { EncryptedData } from '../types';
-import { encrypt, decrypt, generateSalt, generateIV } from './crypto';
+import { encrypt, decrypt } from './crypto';
 
 /**
  * Image processing utilities
@@ -187,7 +187,7 @@ export function validateImageFile(imageFile: File): void {
   }
 
   // Check file type
-  if (!IMAGE_CONSTANTS.SUPPORTED_FORMATS.includes(imageFile.type)) {
+  if (!IMAGE_CONSTANTS.SUPPORTED_FORMATS.includes(imageFile.type as any)) {
     throw new Error(`Unsupported image format. Supported: ${IMAGE_CONSTANTS.SUPPORTED_FORMATS.join(', ')}`);
   }
 

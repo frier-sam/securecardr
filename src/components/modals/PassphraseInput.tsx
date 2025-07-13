@@ -134,7 +134,6 @@ export function PassphraseInput({
     ];
     
     const symbols = '!@#$%^&*';
-    const numbers = '0123456789';
     
     // Generate 4 random words
     const selectedWords = [];

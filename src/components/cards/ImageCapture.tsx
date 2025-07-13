@@ -38,7 +38,7 @@ export function ImageCapture({
 
   useEffect(() => {
     // Check if camera is available
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    if (navigator.mediaDevices) {
       navigator.mediaDevices.enumerateDevices()
         .then(devices => {
           const hasCamera = devices.some(device => device.kind === 'videoinput');

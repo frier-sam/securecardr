@@ -4,7 +4,7 @@
  */
 
 import { Card, EncryptedData } from '../types';
-import { encrypt, decrypt, decryptString } from './crypto';
+import { encrypt, decryptString } from './crypto';
 
 /**
  * Encrypt card data for storage

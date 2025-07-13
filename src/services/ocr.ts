@@ -14,7 +14,7 @@ const OCR_CONFIG = {
   language: 'eng',
   options: {
     tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz /-().',
-    tessedit_pageseg_mode: Tesseract.PSM.SPARSE_TEXT,
+    tessedit_pageseg_mode: '8', // PSM.SPARSE_TEXT
     preserve_interword_spaces: '1',
   },
   // Preprocessing filters
@@ -59,24 +59,25 @@ export async function performOCR(
 ): Promise<OCRResult> {
   try {
     // Create worker with configuration
-    const worker = await Tesseract.createWorker({
-      logger: (m) => {
-        if (m.status === 'recognizing text' && onProgress) {
-          onProgress(Math.round(m.progress * 100));
-        }
-      },
-    });
+    const worker = await Tesseract.createWorker(OCR_CONFIG.language);
 
-    // Initialize worker
-    await worker.loadLanguage(OCR_CONFIG.language);
-    await worker.initialize(OCR_CONFIG.language);
-    await worker.setParameters(OCR_CONFIG.options);
+    // Set parameters
+    await worker.setParameters(OCR_CONFIG.options as any);
+
+    // Report initial progress
+    onProgress?.(0);
 
     // Preprocess image if needed
     const processedImage = await preprocessImage(imageFile);
+    
+    // Report preprocessing complete
+    onProgress?.(25);
 
     // Perform OCR
     const { data } = await worker.recognize(processedImage);
+
+    // Report OCR complete
+    onProgress?.(100);
 
     // Cleanup
     await worker.terminate();

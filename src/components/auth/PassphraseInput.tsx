@@ -3,7 +3,7 @@
  * Secure passphrase entry with strength validation and visual feedback
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { validatePassphraseStrength, generateSecurePassphrase } from '../../services/crypto';
 
 interface PassphraseInputProps {

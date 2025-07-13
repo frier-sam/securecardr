@@ -3,11 +3,9 @@
  * Displays full card information with options to edit, delete, or export
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card } from '../../types';
-import { CategoryBadge } from '../cards/CardCategoryComponents';
 import { maskCardNumber, formatCardNumber } from '../../utils/cardValidation';
-import { Logo } from '../common/Logo';
 
 interface CardDetailModalProps {
   card: Card | null;

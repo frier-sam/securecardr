@@ -1,5 +1,5 @@
 import { uploadFile, downloadFile, updateFile, deleteFile, searchFiles, initializeDriveStructure } from './drive';
-import { encrypt, decrypt, decryptString } from './crypto';
+import { encrypt, decryptString } from './crypto';
 import { Card, EncryptedData } from '../types';
 import { encryptCard, decryptCard } from './cardCrypto';
 import { encryptImage, decryptImage } from './imageCrypto';
@@ -26,6 +26,31 @@ function dataURLToBlob(dataURL: string): Blob {
   }
   
   return new Blob([bytes], { type: mimeType });
+}
+
+/**
+ * Convert Blob to data URL
+ */
+function blobToDataURL(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Safely parse JSON with error handling
+ */
+function safeJSONParse(text: string): any {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('JSON Parse Error:', error);
+    console.error('Attempted to parse:', text);
+    throw new Error(`Failed to parse JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 // Cache for folder IDs
@@ -62,10 +87,16 @@ export async function saveCardToDrive(
     // Convert data URL to Blob without using fetch (CSP safe)
     const imageBlob = dataURLToBlob(card.imageUrl);
     
+    // Convert Blob to File for encryptImage function
+    const imageFile = new File([imageBlob], `card_${card.id}_image.jpg`, {
+      type: imageBlob.type,
+      lastModified: Date.now()
+    });
+    
     // Save image to Drive
     imageFileId = await saveCardImageToDrive(
       card.id,
-      imageBlob,
+      imageFile,
       passphrase,
       onProgress
     );
@@ -103,7 +134,7 @@ export async function saveCardToDrive(
  */
 export async function saveCardImageToDrive(
   cardId: string,
-  imageBlob: Blob,
+  imageFile: File,
   passphrase: string,
   onProgress?: (progress: number) => void
 ): Promise<string> {
@@ -112,7 +143,7 @@ export async function saveCardImageToDrive(
   }
   
   // Encrypt the image
-  const encryptedImage = await encryptImage(imageBlob, passphrase);
+  const encryptedImage = await encryptImage(imageFile, passphrase);
   
   // Prepare metadata
   const metadata = {
@@ -124,7 +155,7 @@ export async function saveCardImageToDrive(
   
   // Upload to Drive
   const driveFile = await uploadFile(
-    new Blob([encryptedImage]),
+    JSON.stringify(encryptedImage),
     metadata,
     onProgress
   );
@@ -150,8 +181,14 @@ export async function saveCardThumbnailsToDrive(
   let completedCount = 0;
   
   for (const size of sizes) {
+    // Convert thumbnail Blob to File for encryptImage
+    const thumbnailFile = new File([thumbnails[size]], `card_${cardId}_thumb_${size}.jpg`, {
+      type: thumbnails[size].type,
+      lastModified: Date.now()
+    });
+    
     // Encrypt each thumbnail
-    const encryptedThumbnail = await encryptImage(thumbnails[size], passphrase);
+    const encryptedThumbnail = await encryptImage(thumbnailFile, passphrase);
     
     // Prepare metadata
     const metadata = {
@@ -163,7 +200,7 @@ export async function saveCardThumbnailsToDrive(
     
     // Upload to Drive
     const driveFile = await uploadFile(
-      new Blob([encryptedThumbnail]),
+      JSON.stringify(encryptedThumbnail),
       metadata,
       (progress) => {
         if (onProgress) {
@@ -193,7 +230,7 @@ export async function loadCardFromDrive(
   // Download the encrypted file
   const blob = await downloadFile(fileId);
   const encryptedJson = await blob.text();
-  const encryptedCard = JSON.parse(encryptedJson) as EncryptedData;
+  const encryptedCard = safeJSONParse(encryptedJson) as EncryptedData;
   
   // Decrypt the card
   const card = await decryptCard(encryptedCard, passphrase);
@@ -204,15 +241,12 @@ export async function loadCardFromDrive(
     try {
       const imageBlob = await loadCardImageFromDrive(imageFileId, passphrase);
       // Convert blob to data URL
-      const reader = new FileReader();
-      const dataUrl = await new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(imageBlob);
-      });
+      const dataUrl = await blobToDataURL(imageBlob);
       card.imageUrl = dataUrl;
     } catch (error) {
       console.error('Failed to load card image:', error);
-      // Keep the drive:// reference if image fails to load
+      // Remove the drive:// reference if image fails to load
+      card.imageUrl = undefined;
     }
   }
   
@@ -226,12 +260,33 @@ export async function loadCardImageFromDrive(
   fileId: string,
   passphrase: string
 ): Promise<Blob> {
-  // Download the encrypted image
-  const encryptedBlob = await downloadFile(fileId);
-  const encryptedBuffer = await encryptedBlob.arrayBuffer();
-  
-  // Decrypt and return
-  return await decryptImage(new Uint8Array(encryptedBuffer), passphrase);
+  try {
+    // Download the encrypted image
+    const encryptedBlob = await downloadFile(fileId);
+    
+    // Convert blob to text properly
+    const encryptedText = await encryptedBlob.text();
+    
+    // Validate that we have actual text data
+    if (!encryptedText || encryptedText.trim() === '') {
+      throw new Error('Empty or invalid encrypted data received');
+    }
+    
+    // Parse the encrypted data with safe parsing
+    const encryptedData = safeJSONParse(encryptedText) as EncryptedData;
+    
+    // Validate encrypted data structure
+    if (!encryptedData || typeof encryptedData !== 'object') {
+      throw new Error('Invalid encrypted data structure');
+    }
+    
+    // Decrypt and return the image blob
+    return await decryptImage(encryptedData, passphrase);
+    
+  } catch (error) {
+    console.error('Failed to load card image from Drive:', error);
+    throw error;
+  }
 }
 
 /**
@@ -280,10 +335,14 @@ export async function updateCardInDrive(
     let imageFileId: string;
     if (existingImageFiles.length > 0) {
       // Update existing image
-      const encryptedImage = await encryptImage(imageBlob, passphrase);
+      const imageFile = new File([imageBlob], `card_${card.id}_image.jpg`, {
+        type: imageBlob.type,
+        lastModified: Date.now()
+      });
+      const encryptedImage = await encryptImage(imageFile, passphrase);
       await updateFile(
         existingImageFiles[0].id,
-        new Blob([encryptedImage]),
+        JSON.stringify(encryptedImage),
         {
           name: `card_${card.id}_image.enc`,
           mimeType: 'application/octet-stream'
@@ -292,7 +351,11 @@ export async function updateCardInDrive(
       imageFileId = existingImageFiles[0].id;
     } else {
       // Save new image
-      imageFileId = await saveCardImageToDrive(card.id, imageBlob, passphrase);
+      const imageFile = new File([imageBlob], `card_${card.id}_image.jpg`, {
+        type: imageBlob.type,
+        lastModified: Date.now()
+      });
+      imageFileId = await saveCardImageToDrive(card.id, imageFile, passphrase);
     }
     
     // Update card to reference the image file ID
@@ -419,7 +482,7 @@ export async function loadPreferencesFromDrive(passphrase: string): Promise<any>
   // Download and decrypt
   const blob = await downloadFile(files[0].id);
   const encryptedJson = await blob.text();
-  const encryptedData = JSON.parse(encryptedJson) as EncryptedData;
+  const encryptedData = safeJSONParse(encryptedJson) as EncryptedData;
   
   // Decrypt preferences using high-level decrypt function
   const decryptedJson = await decryptString(encryptedData, passphrase);
@@ -500,7 +563,7 @@ export async function loadCardIndexFromDrive(passphrase: string): Promise<Array<
   // Download and decrypt
   const blob = await downloadFile(files[0].id);
   const encryptedJson = await blob.text();
-  const encryptedData = JSON.parse(encryptedJson) as EncryptedData;
+  const encryptedData = safeJSONParse(encryptedJson) as EncryptedData;
   
   // Decrypt index using high-level decrypt function
   const decryptedJson = await decryptString(encryptedData, passphrase);

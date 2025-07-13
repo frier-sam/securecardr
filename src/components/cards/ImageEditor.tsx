@@ -3,7 +3,7 @@
  * Full-featured image editor with adjustments, filters, and enhancements
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   ImageAdjustments, 
   processImageWithAdjustments, 
@@ -55,7 +55,6 @@ export function ImageEditor({ imageFile, onSave, onCancel, className = '' }: Ima
     showAdvanced: false,
   });
 
-  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Initialize component

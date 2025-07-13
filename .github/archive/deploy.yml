@@ -1,0 +1,57 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches:
+      - prod
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Create environment file
+      run: |
+        echo "VITE_FIREBASE_API_KEY=${{ secrets.VITE_FIREBASE_API_KEY }}" > .env.production
+        echo "VITE_FIREBASE_AUTH_DOMAIN=${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" >> .env.production
+        echo "VITE_FIREBASE_PROJECT_ID=${{ secrets.VITE_FIREBASE_PROJECT_ID }}" >> .env.production
+        echo "VITE_FIREBASE_STORAGE_BUCKET=${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" >> .env.production
+        echo "VITE_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" >> .env.production
+        echo "VITE_FIREBASE_APP_ID=${{ secrets.VITE_FIREBASE_APP_ID }}" >> .env.production
+        echo "VITE_GOOGLE_DRIVE_CLIENT_ID=${{ secrets.VITE_GOOGLE_DRIVE_CLIENT_ID }}" >> .env.production
+        
+    - name: Run linter
+      run: npm run lint
+      
+    - name: Build application
+      run: npm run build
+      
+    - name: Deploy to Firebase Hosting
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: '${{ secrets.GITHUB_TOKEN }}'
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}'
+        projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+        channelId: live
+        expires: 30d
+        
+    - name: Notify deployment success
+      if: success()
+      run: echo "✅ Deployment successful! Your SecureCardr app is now live."
+      
+    - name: Notify deployment failure
+      if: failure()
+      run: echo "❌ Deployment failed. Please check the logs above."

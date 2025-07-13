@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useDriveStorage } from '../../hooks/useDriveStorage';
 import { CardData } from '../../types';
@@ -101,7 +101,6 @@ export function DriveIntegrationPanel({
     try {
       // Get current cards in Drive
       const driveCards = await listCards();
-      const driveCardIds = new Set(driveCards.map(dc => dc.id));
       
       // Save/update local cards to Drive
       for (const card of cards) {

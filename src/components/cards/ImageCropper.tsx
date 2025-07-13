@@ -3,7 +3,7 @@
  * Integrates Cropper.js for advanced image editing and cropping
  */
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 

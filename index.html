@@ -1,26 +1,132 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="SecureCardr - Zero-knowledge card vault for secure storage of your sensitive cards" />
+    
+    <!-- Primary Meta Tags -->
+    <title>SecureCardr - Zero-Knowledge Card Vault | Secure Card Storage</title>
+    <meta name="title" content="SecureCardr - Zero-Knowledge Card Vault | Secure Card Storage" />
+    <meta name="description" content="SecureCardr is a zero-knowledge card vault that encrypts your credit cards, IDs, and loyalty cards in your browser before storing them securely in your Google Drive. Your data, your encryption, your control." />
+    <meta name="keywords" content="secure card storage, zero knowledge encryption, card vault, credit card security, privacy, encrypted storage, Google Drive, client-side encryption, AES-256, secure wallet" />
+    <meta name="author" content="SecureCardr Team" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="English" />
     <meta name="theme-color" content="#3b82f6" />
     
-    <!-- Security headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.google.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://cardr-sec.firebaseapp.com;" />
+    <!-- Security and Privacy -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://securecardr.com" />
+    <meta property="og:title" content="SecureCardr - Zero-Knowledge Card Vault" />
+    <meta property="og:description" content="Secure your cards with zero-knowledge encryption. Your data is encrypted in your browser before being stored in your Google Drive. We never see your unencrypted information." />
+    <meta property="og:image" content="https://securecardr.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="SecureCardr" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://securecardr.com" />
+    <meta property="twitter:title" content="SecureCardr - Zero-Knowledge Card Vault" />
+    <meta property="twitter:description" content="Secure your cards with zero-knowledge encryption. Your data is encrypted in your browser before being stored in your Google Drive." />
+    <meta property="twitter:image" content="https://securecardr.com/og-image.png" />
+    
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SecureCardr" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://securecardr.com" />
+    
+    <!-- Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com https://*.firebaseapp.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com; connect-src 'self' https://*.googleapis.com https://*.firebaseapp.com https://*.google.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://www.google-analytics.com https://www.googletagmanager.com; frame-src 'self' https://accounts.google.com https://*.firebaseapp.com https://cardr-sec.firebaseapp.com;" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta http-equiv="X-Frame-Options" content="SAMEORIGIN" />
     <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(self)" />
+    
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://apis.google.com" />
+    <link rel="preconnect" href="https://www.gstatic.com" />
+    <link rel="dns-prefetch" href="https://firebase.googleapis.com" />
     
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     
-    <title>SecureCardr - Zero-Knowledge Card Vault</title>
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "SecureCardr",
+      "description": "Zero-knowledge card vault for secure storage of credit cards, IDs, and loyalty cards with client-side encryption",
+      "url": "https://securecardr.com",
+      "applicationCategory": "SecurityApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "SecureCardr Team",
+        "email": "shop2local@gmail.com"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Support",
+        "email": "shop2local@gmail.com",
+        "availableLanguage": "English"
+      },
+      "featureList": [
+        "Zero-knowledge encryption",
+        "Client-side AES-256 encryption",
+        "Google Drive integration",
+        "Card photo capture with OCR",
+        "Secure card management",
+        "No server-side data storage"
+      ],
+      "browserRequirements": "Requires modern browser with Web Crypto API support",
+      "permissions": "Google Drive file access for encrypted storage"
+    }
+    </script>
+    
+    <!-- Google Analytics (Privacy-focused) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'GA_MEASUREMENT_ID', {
+        anonymize_ip: true,
+        respect_privacy: true,
+        send_page_view: false
+      });
+    </script>
   </head>
   <body>
+    <noscript>
+      <div style="background: #1e293b; color: #e2e8f0; padding: 20px; text-align: center; font-family: Inter, sans-serif;">
+        <h1>JavaScript Required</h1>
+        <p>SecureCardr requires JavaScript to provide secure client-side encryption. Please enable JavaScript in your browser to use this application.</p>
+        <p>For support, contact: <a href="mailto:shop2local@gmail.com" style="color: #3b82f6;">shop2local@gmail.com</a></p>
+      </div>
+    </noscript>
+    
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

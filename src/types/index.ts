@@ -1,6 +1,17 @@
 /**
- * Core data types for SecureCardr application
+ * Enhanced Core data types for SecureCardr application
+ * Now supports multiple images per card
  */
+
+export interface CardImage {
+  id: string;
+  url: string; // Data URL or Drive URL
+  name: string;
+  size: number;
+  type: string;
+  addedAt: Date;
+  driveFileId?: string;
+}
 
 export interface Card {
   id: string;
@@ -12,7 +23,8 @@ export interface Card {
   cvv?: string;
   cardholderName?: string;
   notes?: string;
-  imageUrl?: string;
+  images: CardImage[]; // Multiple images support
+  imageUrl?: string; // Deprecated - kept for backward compatibility
   last4?: string;
   addedAt: Date;
   updatedAt: Date;
@@ -62,8 +74,29 @@ export interface CardFormData {
   cvv: string;
   cardholderName: string;
   notes: string;
-  image?: File;
+  images?: File[]; // Multiple images support
+  image?: File; // Deprecated - kept for backward compatibility
 }
+
+// Image management utilities
+export interface ImageUploadResult {
+  success: boolean;
+  image?: CardImage;
+  error?: string;
+}
+
+export interface ImageGalleryProps {
+  images: CardImage[];
+  onImageAdd: (files: File[]) => void;
+  onImageRemove: (imageId: string) => void;
+  onImageView: (image: CardImage) => void;
+  maxImages?: number;
+  allowMultiple?: boolean;
+  readOnly?: boolean;
+}
+
+// Alias for backward compatibility
+export type CardData = Card;
 
 export interface OCRResult {
   text: string;

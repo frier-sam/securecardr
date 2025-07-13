@@ -104,15 +104,6 @@ export function CardListView({
     );
   }, []);
 
-  const handleSortChange = useCallback((newSortBy: SortOption) => {
-    if (newSortBy === sortBy) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(newSortBy);
-      setSortDirection('asc');
-    }
-  }, [sortBy]);
-
   const clearFilters = useCallback(() => {
     setSearchQuery('');
     setSelectedCategories([]);

@@ -1,4 +1,4 @@
-import React from 'react';
+// Remove unused React import
 
 interface LogoProps {
   className?: string;

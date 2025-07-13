@@ -1,14 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Logo } from './common/Logo';
+import { SEO } from './common/SEO';
+import { QuickContact } from './common/ContactSupport';
 
 interface LandingPageProps {
   onStartGoogle: () => void;
   onShowDemo: () => void;
+  authError?: string | null;
 }
 
-export function LandingPage({ onStartGoogle, onShowDemo }: LandingPageProps) {
+export function LandingPage({ onStartGoogle, onShowDemo, authError }: LandingPageProps) {
   const particleNetworkRef = useRef<HTMLDivElement>(null);
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
+  const [showAuthError, setShowAuthError] = useState(false);
+
+  useEffect(() => {
+    // Show auth error if present
+    if (authError) {
+      setShowAuthError(true);
+    }
+  }, [authError]);
 
   useEffect(() => {
     // Create particle network

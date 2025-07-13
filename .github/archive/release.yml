@@ -1,0 +1,117 @@
+name: Release Management
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: |
+        npm run lint
+        npm run type-check
+        npm run build
+        
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the latest tag
+        LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -z "$LATEST_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" --reverse)
+        else
+          CHANGELOG=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --reverse)
+        fi
+        
+        # Save changelog to file
+        echo "# Changelog" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "$CHANGELOG" >> CHANGELOG.md
+        
+        # Set output for GitHub release
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "$CHANGELOG" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+        
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+        release_name: Release ${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+        body: |
+          ## What's Changed
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## 🚀 Deployment
+          
+          This release has been automatically deployed to Firebase Hosting.
+          
+          ## 📋 Verification
+          
+          - ✅ All tests passed
+          - ✅ Linting checks passed
+          - ✅ TypeScript compilation successful
+          - ✅ Build completed successfully
+          
+          ## 🔒 Security
+          
+          This release includes the latest security updates and dependency patches.
+          
+          ---
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ github.event.before || 'v1.0.0' }}...${{ github.ref_name || format('v{0}', github.event.inputs.version) }}
+        draft: false
+        prerelease: false
+        
+    - name: Deploy to Firebase Hosting
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: '${{ secrets.GITHUB_TOKEN }}'
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}'
+        projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+        channelId: live
+        
+    - name: Update package.json version
+      if: github.event.inputs.version
+      run: |
+        npm version ${{ github.event.inputs.version }} --no-git-tag-version
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add package.json
+        git commit -m "chore: bump version to ${{ github.event.inputs.version }}"
+        git push
+        
+    - name: Notify success
+      run: |
+        echo "🎉 Release ${{ github.ref_name || format('v{0}', github.event.inputs.version) }} created successfully!"
+        echo "🚀 Deployment completed to Firebase Hosting"
+        echo "📱 Your app is now live with the latest version!"

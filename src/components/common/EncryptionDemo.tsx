@@ -3,8 +3,8 @@
  * Interactive demonstration of the encryption process for user education
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { encrypt, decrypt, decryptString, validatePassphraseStrength } from '../../services/crypto';
+import { useState, useCallback, useEffect } from 'react';
+import { encrypt, decryptString } from '../../services/crypto';
 
 interface EncryptionDemoProps {
   onComplete?: () => void;

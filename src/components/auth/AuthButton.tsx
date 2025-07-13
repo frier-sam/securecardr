@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { AlertCircle, LogIn, LogOut, Shield, User } from 'lucide-react';
+import { AlertCircle, LogOut, Shield, User } from 'lucide-react';
 
 export function AuthButton() {
   const { user, loading, signIn, signOut } = useAuth();

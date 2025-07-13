@@ -1,25 +1,21 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Card, CardFormData } from './types';
+import { Card, CardImage } from './types';
 import { useAuth } from './context/AuthContext';
-import { EncryptionDemo } from './components/common/EncryptionDemo';
 import { PassphraseSetupModal } from './components/modals/PassphraseSetupModal';
 import { CardForm } from './components/cards/CardForm';
-import { CardListView } from './components/cards/CardListView';
 import { CardDetailModal } from './components/modals/CardDetailModal';
 import { LandingPage } from './components/LandingPage';
 import { Logo } from './components/common/Logo';
 import { createCardFromFormData, updateCardFromFormData } from './utils/cardValidation';
+import { migrateCardToNewFormat, getCardImages, filesToCardImages, cleanupCardImageUrls } from './utils/cardMigration';
 import { 
   initializeDriveStorage, 
   saveCardToDrive, 
   loadCardFromDrive, 
-  loadPreferencesFromDrive, 
-  savePreferencesToDrive,
+  loadPreferencesFromDrive,
   listCardsFromDrive,
   updateCardInDrive,
   deleteCardFromDrive,
-  loadCardIndexFromDrive,
-  saveCardIndexToDrive,
   deleteAllCardsFromDrive
 } from './services/driveStorage';
 import { vaultSession } from './services/vaultSession';
@@ -525,8 +521,7 @@ function Dashboard({
   onAddCard, 
   onCardClick, 
   onCardEdit, 
-  onCardDelete, 
-  onBatchDelete,
+  onCardDelete,
   isLoading 
 }: {
   cards: Card[];
@@ -534,7 +529,6 @@ function Dashboard({
   onCardClick: (card: Card) => void;
   onCardEdit: (card: Card) => void;
   onCardDelete: (card: Card) => void;
-  onBatchDelete: (cardIds: string[]) => void;
   isLoading: boolean;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -564,6 +558,132 @@ function Dashboard({
     debit: cards.filter(c => c.category === 'debit').length,
     loyalty: cards.filter(c => c.category === 'loyalty').length
   };
+
+  // Helper function to get card images (handles both new and legacy formats)
+  const getCardImages = (card: Card): CardImage[] => {
+    if (card.images && card.images.length > 0) {
+      return card.images;
+    }
+    
+    // Handle legacy single image format
+    if (card.imageUrl) {
+      return [{
+        id: `legacy-${card.id}`,
+        url: card.imageUrl,
+        name: 'Card Image',
+        size: 0,
+        type: 'image/jpeg',
+        addedAt: new Date(),
+      }];
+    }
+    
+    return [];
+  };
+
+  // Image Carousel Component
+  function ImageCarousel({ images, cardNickname }: { images: CardImage[]; cardNickname: string }) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    if (!images || images.length === 0) return null;
+
+    const handlePrevious = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    };
+
+    const handleNext = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    };
+
+    return (
+      <div className="relative h-32 overflow-hidden">
+        <img
+          src={images[currentIndex].url}
+          alt={`${cardNickname} - Image ${currentIndex + 1}`}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Image failed to load:', images[currentIndex].url);
+            // Hide broken image
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        
+        {/* Navigation arrows for multiple images */}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={handlePrevious}
+              className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={handleNext}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-1 rounded-full hover:bg-black/70 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            
+            {/* Image indicators */}
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              {images.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex(index);
+                  }}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentIndex ? 'bg-white' : 'bg-white/50'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+        
+        {/* Image count badge */}
+        {images.length > 1 && (
+          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            {currentIndex + 1}/{images.length}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Image Thumbnail Component
+  function ImageThumbnail({ images, cardNickname }: { images: CardImage[]; cardNickname: string }) {
+    if (!images || images.length === 0) return null;
+
+    return (
+      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
+        <img
+          src={images[0].url}
+          alt={`${cardNickname} thumbnail`}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Thumbnail failed to load:', images[0].url);
+            // Hide broken image
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+        
+        {/* Multiple images indicator */}
+        {images.length > 1 && (
+          <div className="absolute top-0 right-0 bg-primary text-white text-xs px-1 rounded-bl">
+            {images.length}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -733,53 +853,117 @@ function Dashboard({
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" 
             : "space-y-4"
           }>
-            {filteredCards.map((card) => (
-              <div
-                key={card.id}
-                onClick={() => onCardClick(card)}
-                className={`
-                  bg-surface rounded-lg cursor-pointer transition-all duration-200 
-                  hover:transform hover:-translate-y-1 hover:shadow-2xl 
-                  border border-slate-700 hover:border-primary/50 overflow-hidden
-                  ${layout === 'list' ? 'flex items-center p-4' : card.imageUrl ? 'pb-6' : 'p-6'}
-                `}
-              >
-                {layout === 'grid' ? (
-                  // Grid Layout
-                  <>
-                    {/* Card Image */}
-                    {card.imageUrl && (
-                      <div className="mb-4 -mx-6 -mt-6">
-                        <img
-                          src={card.imageUrl}
-                          alt={`${card.nickname} card`}
-                          className="w-full h-32 object-cover rounded-t-lg"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onCardClick(card);
-                          }}
-                        />
+            {filteredCards.map((card) => {
+              const cardImages = getCardImages(card);
+              const hasImages = cardImages.length > 0;
+              
+              return (
+                <div
+                  key={card.id}
+                  onClick={() => onCardClick(card)}
+                  className={`
+                    bg-surface rounded-lg cursor-pointer transition-all duration-200 
+                    hover:transform hover:-translate-y-1 hover:shadow-2xl 
+                    border border-slate-700 hover:border-primary/50 overflow-hidden
+                    ${layout === 'list' ? 'flex items-center p-4' : hasImages ? 'pb-6' : 'p-6'}
+                  `}
+                >
+                  {layout === 'grid' ? (
+                    // Grid Layout
+                    <>
+                      {/* Card Image Carousel */}
+                      {hasImages && (
+                        <div className="mb-4 -mx-6 -mt-6">
+                          <ImageCarousel images={cardImages} cardNickname={card.nickname} />
+                        </div>
+                      )}
+                      
+                      <div className={`flex justify-between items-start mb-4 ${hasImages ? 'px-6' : ''}`}>
+                        <div className="flex-1 mr-2">
+                          <h3 className="text-lg font-semibold text-text-primary truncate">
+                            {card.nickname}
+                          </h3>
+                          <p className="text-sm text-text-secondary capitalize">
+                            {card.category}
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCardEdit(card);
+                            }}
+                            className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCardDelete(card);
+                            }}
+                            className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    )}
-                    
-                    <div className={`flex justify-between items-start mb-4 ${card.imageUrl ? 'px-6' : ''}`}>
-                      <div className="flex-1 mr-2">
-                        <h3 className="text-lg font-semibold text-text-primary truncate">
-                          {card.nickname}
-                        </h3>
-                        <p className="text-sm text-text-secondary capitalize">
-                          {card.category}
-                        </p>
+                      
+                      <div className={`space-y-2 ${hasImages ? 'px-6' : ''}`}>
+                        {card.number && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-text-secondary">Number</span>
+                            <span className="text-sm text-text-primary font-mono">
+                              •••• {card.number.slice(-4)}
+                            </span>
+                          </div>
+                        )}
+                        {card.expiryDate && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-text-secondary">Expires</span>
+                            <span className="text-sm text-text-primary">{card.expiryDate}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center space-x-1">
+                    </>
+                  ) : (
+                    // List Layout
+                    <>
+                      <div className="flex-1 flex items-center space-x-4">
+                        {/* Card Image Thumbnail or Icon */}
+                        {hasImages ? (
+                          <ImageThumbnail images={cardImages} cardNickname={card.nickname} />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-2xl">
+                              {card.category === 'credit' ? '💳' : 
+                               card.category === 'debit' ? '💰' : 
+                               card.category === 'loyalty' ? '🎁' : 
+                               card.category === 'id' ? '🆔' : '📋'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-text-primary">{card.nickname}</h3>
+                          <p className="text-sm text-text-secondary">
+                            {card.number ? `•••• ${card.number.slice(-4)}` : card.category}
+                            {card.expiryDate && ` • Exp: ${card.expiryDate}`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onCardEdit(card);
                           }}
-                          className="p-1.5 text-text-secondary hover:text-primary hover:bg-primary/10 rounded transition-colors"
+                          className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </button>
@@ -788,95 +972,18 @@ function Dashboard({
                             e.stopPropagation();
                             onCardDelete(card);
                           }}
-                          className="p-1.5 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                          className="p-2 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
                       </div>
-                    </div>
-                    
-                    <div className={`space-y-2 ${card.imageUrl ? 'px-6' : ''}`}>
-                      {card.number && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-text-secondary">Number</span>
-                          <span className="text-sm text-text-primary font-mono">
-                            •••• {card.number.slice(-4)}
-                          </span>
-                        </div>
-                      )}
-                      {card.expiryDate && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-text-secondary">Expires</span>
-                          <span className="text-sm text-text-primary">{card.expiryDate}</span>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  // List Layout
-                  <>
-                    <div className="flex-1 flex items-center space-x-4">
-                      {/* Card Image or Icon */}
-                      {card.imageUrl ? (
-                        <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-                          <img
-                            src={card.imageUrl}
-                            alt={`${card.nickname} card`}
-                            className="w-full h-full object-cover"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onCardClick(card);
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-2xl">
-                            {card.category === 'credit' ? '💳' : 
-                             card.category === 'debit' ? '💰' : 
-                             card.category === 'loyalty' ? '🎁' : 
-                             card.category === 'id' ? '🆔' : '📋'}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-text-primary">{card.nickname}</h3>
-                        <p className="text-sm text-text-secondary">
-                          {card.number ? `•••• ${card.number.slice(-4)}` : card.category}
-                          {card.expiryDate && ` • Exp: ${card.expiryDate}`}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCardEdit(card);
-                        }}
-                        className="p-2 text-text-secondary hover:text-primary hover:bg-primary/10 rounded transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onCardDelete(card);
-                        }}
-                        className="p-2 text-text-secondary hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -909,10 +1016,8 @@ function App() {
     
     try {
       const cardsList = await listCardsFromDrive();
-      const loadedCards: Card[] = [];
       
       // Load cards with progress indication
-      const totalCards = cardsList.length;
       let loadedCount = 0;
       
       // Use Promise.all for parallel loading with error handling
@@ -927,8 +1032,11 @@ function App() {
             setAppState(prev => ({ ...prev, isLoading: true }));
           }
           
+          // Migrate card to new format if needed
+          const migratedCard = migrateCardToNewFormat(cardData);
+          
           return {
-            ...cardData,
+            ...migratedCard,
             driveFileId: cardInfo.fileId
           } as Card;
         } catch (error) {
@@ -1119,17 +1227,6 @@ function App() {
                 console.error('Failed to delete card:', error);
               }
             }}
-            onBatchDelete={async (cardIds) => {
-              if (!passphrase) return;
-              try {
-                for (const cardId of cardIds) {
-                  await deleteCardFromDrive(cardId);
-                }
-                setCards(prev => prev.filter(card => !cardIds.includes(card.id)));
-              } catch (error) {
-                console.error('Failed to delete cards:', error);
-              }
-            }}
             isLoading={appState.isLoading}
           />
         )}
@@ -1176,34 +1273,79 @@ function App() {
                   if (!passphrase) return;
                   
                   try {
-                    // Convert image file to data URL if present
-                    let imageUrl: string | undefined;
+                    // Handle multiple images
+                    const cardImages: CardImage[] = [];
+                    
+                    // Convert new image files to CardImage objects with data URLs
+                    if (formData.images && formData.images.length > 0) {
+                      for (const imageFile of formData.images) {
+                        const reader = new FileReader();
+                        const dataUrl = await new Promise<string>((resolve, reject) => {
+                          reader.onload = (e) => resolve(e.target?.result as string);
+                          reader.onerror = reject;
+                          reader.readAsDataURL(imageFile);
+                        });
+                        
+                        cardImages.push({
+                          id: `temp-${Date.now()}-${Math.random()}`,
+                          url: dataUrl,
+                          name: imageFile.name,
+                          size: imageFile.size,
+                          type: imageFile.type,
+                          addedAt: new Date()
+                        });
+                      }
+                    }
+                    
+                    // Handle legacy single image for backward compatibility
+                    let legacyImageUrl: string | undefined;
                     if (formData.image) {
                       const reader = new FileReader();
-                      imageUrl = await new Promise<string>((resolve, reject) => {
+                      legacyImageUrl = await new Promise<string>((resolve, reject) => {
                         reader.onload = (e) => resolve(e.target?.result as string);
                         reader.onerror = reject;
                         reader.readAsDataURL(formData.image!);
                       });
+                      
+                      // Add to images array if not already there
+                      if (cardImages.length === 0) {
+                        cardImages.push({
+                          id: `legacy-${Date.now()}`,
+                          url: legacyImageUrl,
+                          name: formData.image.name,
+                          size: formData.image.size,
+                          type: formData.image.type,
+                          addedAt: new Date()
+                        });
+                      }
                     }
                     
                     if (cardModalMode === 'edit' && cardToEdit) {
+                      // Preserve existing images and add new ones
+                      const existingImages = getCardImages(cardToEdit);
+                      const allImages = [...existingImages, ...cardImages];
+                      
                       const updatedCard = {
                         ...updateCardFromFormData(cardToEdit, formData),
-                        imageUrl: imageUrl || cardToEdit.imageUrl
+                        images: allImages,
+                        imageUrl: legacyImageUrl || cardToEdit.imageUrl
                       };
+                      
                       const driveFileId = (cardToEdit as any).driveFileId;
                       if (driveFileId) {
                         await updateCardInDrive(driveFileId, updatedCard, passphrase);
                       }
+                      
                       setCards(prev => prev.map(card => 
                         card.id === cardToEdit.id ? { ...updatedCard, driveFileId } : card
                       ));
                     } else {
                       const newCard = {
                         ...createCardFromFormData(formData),
-                        imageUrl
+                        images: cardImages,
+                        imageUrl: legacyImageUrl
                       };
+                      
                       const driveFileId = await saveCardToDrive(newCard, passphrase);
                       setCards(prev => [...prev, { ...newCard, driveFileId }]);
                     }

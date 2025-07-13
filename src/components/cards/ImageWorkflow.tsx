@@ -3,7 +3,7 @@
  * Clean and minimal - just capture and crop
  */
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ImageCapture } from './ImageCapture';
 import { ImageCropper } from './ImageCropper';
 

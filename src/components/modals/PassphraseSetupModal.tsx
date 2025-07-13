@@ -203,11 +203,11 @@ export function PassphraseSetupModal({ isOpen, onComplete, onCancel }: Passphras
               <PassphraseInput
                 value={passphrase}
                 onChange={setPassphrase}
-                onValidityChange={setIsPassphraseValid}
+                onValidationChange={setIsPassphraseValid}
                 placeholder="Enter your passphrase"
                 autoFocus
                 showStrengthMeter
-                showGenerator
+                showGenerateButton
               />
 
               <div className="bg-amber-900/20 border border-amber-800 rounded-lg p-4">
@@ -241,11 +241,11 @@ export function PassphraseSetupModal({ isOpen, onComplete, onCancel }: Passphras
               <PassphraseInput
                 value={confirmPassphrase}
                 onChange={handleConfirmPassphraseChange}
-                onValidityChange={setIsConfirmValid}
+                onValidationChange={setIsConfirmValid}
                 placeholder="Confirm your passphrase"
                 autoFocus
                 showStrengthMeter={false}
-                showGenerator={false}
+                showGenerateButton={false}
               />
 
               {confirmPassphrase.length > 0 && !isConfirmValid && (

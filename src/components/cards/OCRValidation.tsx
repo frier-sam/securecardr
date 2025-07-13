@@ -1,9 +1,9 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { parseCardInfo, validateOCRResults } from '../../services/ocr';
 import { OCRResult, CardFormData } from '../../types';
 import { CardCategory } from '../../utils/cardCategories';
-import { CategoryBadge, CategorySelector } from './CardCategoryComponents';
+import { CategorySelector } from './CardCategoryComponents';
 import { validateCardData } from '../../utils/cardValidation';
 
 interface OCRValidationProps {
@@ -94,6 +94,8 @@ export function OCRValidation({
       expiryDate,
       notes,
       issueDate: '',
+      cvv: '',
+      cardholderName,
     };
     
     const validation = validateCardData(formData);
